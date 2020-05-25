@@ -109,7 +109,7 @@ def my_ScheduledPic():
     now = datetime.now()
     TimeStamp = "{0:%Y}-{0:%m}-{0:%d} {0:%H}:{0:%M}:{0:%S}".format(now)
     if frame == 1: #get a big first picture
-        camera.zoom = (0, 0, 1, 1)
+        #camera.zoom = (0, 0, 1, 1)
    
     my_TimeStampComment("Take scheduled pic..." + str(frame))
     camera.start_preview()
