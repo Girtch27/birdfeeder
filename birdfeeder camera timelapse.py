@@ -32,11 +32,11 @@ camera.rotation = 270
 camera.resolution = (1920,1080)  #(2592, 1944) (1920, 1080) (1280,720) (1024, 768)
                                 #camera.resolution = max picture #(2592, 1944) (1280,720) (1024, 768),
                                 #max video (1920,1080), max twitter video (1820, 720)
-camera.iso = 100                #0 which is auto, 100 to 800
+camera.iso = 0                #0 which is auto, 100 to 800
 meter_mode = 'average'             #'average', 'spot', 'backlit', 'matrix'
 
 camera.brightness = 50          #0 to 50, default 50
-camera.exposure_mode = 'auto'   #'off','auto','sun', 'night','nightpreview','backlight'
+camera.exposure_mode = 'sports'   #'off','auto','sports', 'night','nightpreview','backlight'
 camera.awb_mode = 'sunlight'    #'off', 'auto', 'sunlight', 'cloudy'
 camera.exposure_compensation = 0 #-25 and 25
 camera.contrast = 0            #-100 to 100
@@ -108,7 +108,7 @@ def my_ScheduledPic():
 
     now = datetime.now()
     TimeStamp = "{0:%Y}-{0:%m}-{0:%d} {0:%H}:{0:%M}:{0:%S}".format(now)
-    if frame == 1: #get a big first picture
+    #if frame == 1: #get a big first picture
         #camera.zoom = (0, 0, 1, 1)
    
     my_TimeStampComment("Take scheduled pic..." + str(frame))
@@ -146,7 +146,7 @@ def my_ScheduledPic():
     '''
     
     #number of frames to take for timelapse
-    numFrames =  40 #91 #121
+    numFrames =  80 #91 #121
     
     if frame == 1:
         firstFrame = TimeStamp
