@@ -1,0 +1,1 @@
+This project use a Raspberry Pi and camera. Camera takes time lapse pitures and creates a video and tweets them out to Twitter automatically on a schedule.
