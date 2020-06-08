@@ -55,23 +55,24 @@ def my_TimeStampComment(comment):
 
 
 def my_ScheduledTweet():
-    global frame, firstFrameTweet, lastFrameTweet, TimeStamp, videoFN
+    global frame, firstFrameTweet, lastFrameTweet, TimeStamp, videoFN, videoFNcreated
     if videoFNcreated == 1:
-        my_TimeStampComment('send tweet...')
         video = open(videoFN, 'rb')
         #load mp4 video to twitter and get the media ID
         my_TimeStampComment("Tweet stop animation video..." + videoFN)
         message = ("#Birdfeeder stop motion animation (time lapse) video. @Raspberry_Pi automatically takes images & creates the mp4 video.\n#birds #birdwatching #RaspberryPi" + "\n\nFrom:\n" + firstFrameTweet + ", To:\n" + lastFrameTweet)
-        response = myTweet.upload_video(media=video, media_type='video/mp4')
+        #response = myTweet.upload_video(media=video, media_type='video/mp4') #previous method, worked for 20sec length
+        #https://github.com/ryanmcgrath/twython/issues/438, post videos of up to 2:20 in length
+        response = myTweet.upload_video(media=video, media_type='video/mp4', media_category='tweet_video', check_progress=True)
         myTweet.update_status(status=message, media_ids=[response['media_id']])
     else:
         my_TimeStampComment('no video, no tweeting...')
 
         
 def my_CreateAnimation():
-    global frame, firstFrameTweet, lastFrameTweet, TimeStamp, videoFN
+    global frame, firstFrameTweet, lastFrameTweet, TimeStamp, videoFN, videoFNcreated
 
-    my_TimeStampComment('create animation...' + str(frame))
+    my_TimeStampComment('create animation...' + str(frame) + ' images')
     subprocess.call(["/usr/bin/ffmpeg","-r","2","-i","/home/pi/Desktop/Birdfeeder/images/image%03d.jpg","-qscale","2","/home/pi/Desktop/Birdfeeder/Animation/Animation " + TimeStamp + ".mp4"]) #worked
     videoFN =  "/home/pi/Desktop/Birdfeeder/Animation/animation " + TimeStamp + ".mp4" #set videoFN to the name offile to tweet when its time
     #os.rename("/home/pi/Desktop/Birdfeeder/Animation/animation " + TimeStamp + ".mp4","/home/pi/Desktop/Birdfeeder/Animation/animationtweet.mp4")
@@ -98,7 +99,7 @@ def my_CreateAnimation():
             os.rename("/home/pi/Desktop/Birdfeeder/Animation/animation.mp4","/home/pi/Desktop/Birdfeeder/Animation/animation " + TimeStamp + ".mp4")
         '''
         videoFNcreated = 1 #video created, ok to tweet it
-        my_TimeStampComment("waiting...")
+        my_TimeStampComment("timelapsve video created, waiting...")
 
 
 
@@ -145,9 +146,9 @@ with picamera.PiCamera() as camera:
                 schedule.run_pending()
                 camera.start_preview()
                 sleep(2)
-                my_TimeStampComment('started & waiting...' + str(motionDetected))
+                my_TimeStampComment('started & waiting...')
                 #camera.resolution = (640, 480)
-                camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video ' + TimeStamp +  '.h264', format='h264', motion_output=output)
+                camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video ' + TimeStamp , format='h264', motion_output=output)
                 camera.wait_recording(600)
                 camera.stop_recording()
                 #my_TimeStampComment('motion is...' + str(motionDetected))
