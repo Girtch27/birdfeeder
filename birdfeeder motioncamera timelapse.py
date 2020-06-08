@@ -74,7 +74,7 @@ def my_CreateAnimation():
 
     my_TimeStampComment('create animation...' + str(frame) + ' images')
     subprocess.call(["/usr/bin/ffmpeg","-r","2","-i","/home/pi/Desktop/Birdfeeder/images/image%03d.jpg","-qscale","2","/home/pi/Desktop/Birdfeeder/Animation/Animation " + TimeStamp + ".mp4"]) #worked
-    videoFN =  "/home/pi/Desktop/Birdfeeder/Animation/animation " + TimeStamp + ".mp4" #set videoFN to the name offile to tweet when its time
+    videoFN =  "/home/pi/Desktop/Birdfeeder/Animation/Animation " + TimeStamp + ".mp4" #set videoFN to the name offile to tweet when its time
     #os.rename("/home/pi/Desktop/Birdfeeder/Animation/animation " + TimeStamp + ".mp4","/home/pi/Desktop/Birdfeeder/Animation/animationtweet.mp4")
     
     '''
@@ -148,7 +148,7 @@ with picamera.PiCamera() as camera:
                 sleep(2)
                 my_TimeStampComment('started & waiting...')
                 #camera.resolution = (640, 480)
-                camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video ' + TimeStamp , format='h264', motion_output=output)
+                camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video ' + TimeStamp + '.h264', format='h264', motion_output=output)
                 camera.wait_recording(600)
                 camera.stop_recording()
                 #my_TimeStampComment('motion is...' + str(motionDetected))
