@@ -253,9 +253,9 @@ schedule.every(1).minutes.at(":15").do(my_ScheduledPic)
 schedule.every(1).minutes.at(":30").do(my_ScheduledPic)
 schedule.every(1).minutes.at(":45").do(my_ScheduledPic)
 
-schedule.every().day.at("09:00").do(my_ScheduledTweet)
-schedule.every().day.at("14:00").do(my_ScheduledTweet)
-schedule.every().day.at("19:00").do(my_ScheduledTweet)
+#schedule.every().day.at("06:30").do(my_ScheduledTweet)
+schedule.every().day.at("08:00").do(my_ScheduledTweet)
+schedule.every().day.at("12:00").do(my_ScheduledTweet)
 
 #schedule.every().hour.at(":00").do(my_ScheduledNoonTweet)
 #schedule.every(5).minutes.do(delete_job) 
@@ -286,7 +286,7 @@ if FirstRun == 1:
 my_TimeStampComment("waiting...")
 
 while True:
-    if 7 <= datetime.now().hour  < 20:
+    if 6 <= datetime.now().hour  < 20:
         #my_ScheduledTweeterSearch()
         #print("Time hr is: " + str(datetime.now().hour))
         schedule.run_pending()
