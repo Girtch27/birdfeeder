@@ -23,7 +23,7 @@ Try doubling the previous value and continue doubling if it does not work, until
 
 class DetectMotion(picamera.array.PiMotionAnalysis):
     def analyze(self, a):
-        global motionDetected, frame, vectorMagLimit, vectorLimit, magnitudeSquirrel, vectorSquirrel
+        global motionDetected, frame, squirrelframe, vectorMagLimit, vectorLimit, magnitudeSquirrel, vectorSquirrel
         a = np.sqrt(np.square(a['x'].astype(np.float)) + np.square(a['y'].astype(np.float))).clip(0, 255).astype(np.uint8)
         # If there're more than 10 vectors with a magnitude greater
         # than 60, then say we've detected motion
@@ -41,6 +41,8 @@ class DetectMotion(picamera.array.PiMotionAnalysis):
         and
         if (a > 60).sum() < 300: #squirrel check
         '''
+        now = datetime.now()
+        TimeStamp = "{0:%Y}-{0:%m}-{0:%d} {0:%H}:{0:%M}:{0:%S}".format(now)
         vectorNum = (a > 60).sum()
         if (vectorNum > vectorLimit):
             if (vectorNum < vectorSquirrel):
@@ -53,13 +55,20 @@ class DetectMotion(picamera.array.PiMotionAnalysis):
                 camera.capture ('/home/pi/Desktop/Birdfeeder/images/image%03d.jpg' %frame) #('./camera/recent.jpg') or %03d.jpg' % frame
                 my_TimeStampComment('Motion detected, take image ' + str(frame) + ', limit: ' + str(vectorLimit) + ' > ' + str(vectorNum) + ' < ' + str(vectorSquirrel))
                                         #+ str(frame) + ', motion limit:' + str(vectorLimit) + '< ' + str(vectorNum) + '< ' + str(vectorSquirrel)) # + str(a))
+                lastFrame = frame
+                frame =  frame + 1
+                motionDetected = 1
             #vectorNum > vectorSquirrel , squirrel detected
             else:
-                my_TimeStampComment('Squirrel detected, take image ' + str(frame) + ', limit: ' + str(vectorSquirrel) + ' < ' + str(vectorNum))
+                camera.annotate_text = (TimeStamp + ', |V|=' + str(vectorNum))
+                camera.capture ('/home/pi/Desktop/Birdfeeder/images/imagesquirrel%03d.jpg' %squirrelframe) #('./camera/recent.jpg') or %03d.jpg' % frame
+                my_TimeStampComment('Squirrel detected, take image ' + str(squirrelframe) + ', limit: ' + str(vectorSquirrel) + ' < ' + str(vectorNum))
                                         #+ str(frame) + ', motion limit:' + str(vectorSquirrel) + '< ' + str(vectorNum)) # + str(a))
-            lastFrame = frame
-            frame =  frame + 1
-            motionDetected = 1
+                squirrelframe = squirrelframe + 1
+                if squirrelframe > 30:
+                    squirrelframe = 0
+
+
 
         #vectorNum < vectorLimit , no motion detected, below threshold
         else:
@@ -143,6 +152,7 @@ myTweet = Twython(C_key,C_secret,A_token,A_secret)
 
 
 frame = 0
+squirrelframe = 0
 firstFrame = 0
 videoFNcreated = 0
 
