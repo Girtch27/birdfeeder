@@ -5,6 +5,7 @@ from time import sleep, strftime
 from datetime import datetime
 from picamera import Color
 import subprocess
+from random import randint
 import schedule
 import os
 from twython import Twython
@@ -60,10 +61,15 @@ class DetectMotion(picamera.array.PiMotionAnalysis):
                 motionDetected = 1
             #vectorNum > vectorSquirrel , squirrel detected
             else:
+                r = randint(0, len(audio)-1)
+                scaryaudio = audio[r]
                 camera.annotate_text = (TimeStamp + ', |V|=' + str(vectorNum))
                 camera.capture ('/home/pi/Desktop/Birdfeeder/images/imagesquirrel%03d.jpg' %squirrelframe) #('./camera/recent.jpg') or %03d.jpg' % frame
                 my_TimeStampComment('Squirrel detected, take image ' + str(squirrelframe) + ', limit: ' + str(vectorSquirrel) + ' < ' + str(vectorNum))
                                         #+ str(frame) + ', motion limit:' + str(vectorSquirrel) + '< ' + str(vectorNum)) # + str(a))
+                #subprocess.call(["aplay /home/pi/Documents/Python3 Projects/Birdfeeder/mtnlion.wav"], shell=True)
+                subprocess.call(["aplay " + scaryaudio], shell=True)
+
                 squirrelframe = squirrelframe + 1
                 if squirrelframe > 30:
                     squirrelframe = 0
@@ -102,6 +108,7 @@ def my_ScheduledTweet():
         #https://github.com/ryanmcgrath/twython/issues/438, post videos of up to 2:20 in length
         response = myTweet.upload_video(media=video, media_type='video/mp4', media_category='tweet_video', check_progress=True)
         myTweet.update_status(status=message, media_ids=[response['media_id']])
+        videoFNcreated = 0 #set it back to 0 after sending tweet, so doesn't send the same video next tweet
     else:
         my_TimeStampComment('no video, no tweeting...')
 
@@ -138,7 +145,7 @@ def my_CreateAnimation():
     os.rename("/home/pi/Desktop/Birdfeeder/Animation/animation.mp4","/home/pi/Desktop/Birdfeeder/Animation/animation " + TimeStamp + ".mp4")
     '''
     videoFNcreated = 1 #video created, ok to tweet it
-    my_TimeStampComment("timelapsve video created, waiting...")
+    my_TimeStampComment("timelapse video created, waiting...")
 
 
 
@@ -160,6 +167,15 @@ schedule.every().day.at("10:00").do(my_ScheduledTweet)
 schedule.every().day.at("14:00").do(my_ScheduledTweet)
 schedule.every().day.at("20:55").do(my_ScheduledTweet)
 #schedule.every().day.at("20:25").do(my_ScheduledTweet)
+
+audiofiledir = "/home/pi/Documents/Python3 Projects/Birdfeeder/"
+audio = []
+audio.append(audiofiledir + 'doberman.wav')
+audio.append(audiofiledir + 'dogbarking.wav')
+audio.append(audiofiledir + 'dogcrazy.wav')
+audio.append(audiofiledir + 'doggrowl.wav')
+audio.append(audiofiledir + 'mtnlion.wav')
+
 
 
 #******************
