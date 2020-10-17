@@ -32,8 +32,8 @@ class DetectMotion(picamera.array.PiMotionAnalysis):
         vectorMagLimit = 100
         magnitudeSquirrel = 200
         
-        vectorLimit = 1050 #1050 for windy days #500 #30 fo 640x480
-        vectorSquirrel = 1500 #1500 # 300 for 640x480
+        vectorLimit = 300 #1050 for windy days #500 #30 fo 640x480
+        vectorSquirrel = 800 #1500 # 300 for 640x480
 
         ''' 640,480 threshold
         if (a > 60).sum() > 30:
@@ -53,6 +53,8 @@ class DetectMotion(picamera.array.PiMotionAnalysis):
                 
                 #my_TimeStampComment('timestamp comment')
                 camera.annotate_text = (TimeStamp + ', |V|=' + str(vectorNum))
+                camera.capture ('/home/pi/Desktop/Birdfeeder/images/imageDebug%03d.jpg' %frame) #('./camera/recent.jpg') or %03d.jpg' % frame
+                camera.annotate_text = ('')
                 camera.capture ('/home/pi/Desktop/Birdfeeder/images/image%03d.jpg' %frame) #('./camera/recent.jpg') or %03d.jpg' % frame
                 my_TimeStampComment('Motion detected, take image ' + str(frame) + ', limit: ' + str(vectorLimit) + ' > ' + str(vectorNum) + ' < ' + str(vectorSquirrel))
                                         #+ str(frame) + ', motion limit:' + str(vectorLimit) + '< ' + str(vectorNum) + '< ' + str(vectorSquirrel)) # + str(a))
@@ -66,9 +68,11 @@ class DetectMotion(picamera.array.PiMotionAnalysis):
                 camera.annotate_text = (TimeStamp + ', |V|=' + str(vectorNum))
                 camera.capture ('/home/pi/Desktop/Birdfeeder/images/imagesquirrel%03d.jpg' %squirrelframe) #('./camera/recent.jpg') or %03d.jpg' % frame
                 my_TimeStampComment('Squirrel detected, take image ' + str(squirrelframe) + ', limit: ' + str(vectorSquirrel) + ' < ' + str(vectorNum))
-                                        #+ str(frame) + ', motion limit:' + str(vectorSquirrel) + '< ' + str(vectorNum)) # + str(a))
+                                    #+ str(frame) + ', motion limit:' + str(vectorSquirrel) + '< ' + str(vectorNum)) # + str(a))
                 #subprocess.call(["aplay /home/pi/Documents/Python3 Projects/Birdfeeder/mtnlion.wav"], shell=True)
-                subprocess.call(["aplay " + scaryaudio], shell=True)
+                
+                # play scary sounds
+                #subprocess.call(["aplay " + scaryaudio], shell=True)
 
                 squirrelframe = squirrelframe + 1
                 if squirrelframe > 30:
@@ -163,20 +167,21 @@ squirrelframe = 0
 firstFrame = 0
 videoFNcreated = 0
 
-schedule.every().day.at("10:00").do(my_ScheduledTweet)
+schedule.every().day.at("08:00").do(my_ScheduledTweet)
 schedule.every().day.at("14:00").do(my_ScheduledTweet)
-schedule.every().day.at("20:55").do(my_ScheduledTweet)
+schedule.every().day.at("17:50").do(my_ScheduledTweet)
+
 #schedule.every().day.at("20:25").do(my_ScheduledTweet)
 
-audiofiledir = "/home/pi/Documents/Python3 Projects/Birdfeeder/"
+audiofiledir = "/home/pi/Documents/python3/birdfeeder/"
 audio = []
 audio.append(audiofiledir + 'doberman.wav')
-audio.append(audiofiledir + 'dogbarking.wav')
+#audio.append(audiofiledir + 'dogbarking.wav') #long sound file
 audio.append(audiofiledir + 'dogcrazy.wav')
 audio.append(audiofiledir + 'doggrowl.wav')
 audio.append(audiofiledir + 'mtnlion.wav')
-
-
+audio.append(audiofiledir + 'mtnlion.wav')
+audio.append(audiofiledir + 'mtnlion.wav')
 
 #******************
 
@@ -188,7 +193,7 @@ with picamera.PiCamera() as camera:
     camera.resolution = (1024, 768) #(640,480)  #(2592, 1944) (1920, 1080) (1280,720) (1024, 768)
                                 #camera.resolution = max picture #(2592, 1944) (1280,720) (1024, 768),
                                 #max video (1920,1080), max twitter video (1820, 720)
-    camera.framerate = 2  #various speeds based on resolution
+    camera.framerate = 30 #6  #various speeds based on resolution
     camera.iso = 600                #0 which is auto, 100 to 800
     camera.meter_mode = 'matrix'    #'average', 'spot', 'backlit', 'matrix'
 
@@ -202,8 +207,8 @@ with picamera.PiCamera() as camera:
 
     with DetectMotion(camera) as output:
         while True:
-            if 6 <= datetime.now().hour  < 21:
-
+            timecheck = datetime.now().hour
+            if 6 <= timecheck  < 18:
                 schedule.run_pending()
                 camera.start_preview()
                 sleep(1)
@@ -211,7 +216,7 @@ with picamera.PiCamera() as camera:
                 #timestamp videos, save all or save same filename and delete
                 #camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video ' + TimeStamp + '.h264', format='h264', motion_output=output)
                 camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video.h264', format='h264', motion_output=output)
-                camera.wait_recording(180)
+                camera.wait_recording(60)
                 camera.stop_recording()
                 sleep(1)
                 os.remove('/home/pi/Desktop/Birdfeeder/images/video.h264')
@@ -219,6 +224,7 @@ with picamera.PiCamera() as camera:
                     my_CreateAnimation()
                 my_TimeStampComment('finished with ' + str(frame) + ' images')
                 sleep(1)
+            sleep(2)
 
 
         
