@@ -24,7 +24,7 @@ Try doubling the previous value and continue doubling if it does not work, until
 
 class DetectMotion(picamera.array.PiMotionAnalysis):
     def analyze(self, a):
-        global motionDetected, frame, squirrelframe, vectorMagLimit, vectorLimit, magnitudeSquirrel, vectorSquirrel
+        global birdDetected, squirrelDetected, birdframe, squirrelframe, vectorMagLimit, vectorBird, magnitudeSquirrel, vectorSquirrel
         a = np.sqrt(np.square(a['x'].astype(np.float)) + np.square(a['y'].astype(np.float))).clip(0, 255).astype(np.uint8)
         # If there're more than 10 vectors with a magnitude greater
         # than 60, then say we've detected motion
@@ -32,65 +32,29 @@ class DetectMotion(picamera.array.PiMotionAnalysis):
         vectorMagLimit = 100
         magnitudeSquirrel = 200
         
-        vectorLimit = 300 #1050 for windy days #500 #30 fo 640x480
-        vectorSquirrel = 800 #1500 # 300 for 640x480
+        vectorBird = 30 #1050 for windy days #500 #30 fo 640x480
+        vectorSquirrel = 1800 #1500 # 300 for 640x480
 
-        ''' 640,480 threshold
-        if (a > 60).sum() > 30:
-            vectorNum = (a > 60).sum()
-            
-        and
-        if (a > 60).sum() < 300: #squirrel check
-        '''
         now = datetime.now()
         TimeStamp = "{0:%Y}-{0:%m}-{0:%d} {0:%H}:{0:%M}:{0:%S}".format(now)
         vectorNum = (a > 60).sum()
-        if (vectorNum > vectorLimit):
+        if (vectorNum > vectorBird):   #found something
             if (vectorNum < vectorSquirrel):
-                
-                #vector debug info use below
-                #camera.annotate_text = ("vectorNum:" + str(vectorNum))
-                
-                #my_TimeStampComment('timestamp comment')
-                camera.annotate_text = (TimeStamp + ', |V|=' + str(vectorNum))
-                camera.capture ('/home/pi/Desktop/Birdfeeder/images/imageDebug%03d.jpg' %frame) #('./camera/recent.jpg') or %03d.jpg' % frame
-                camera.annotate_text = ('')
-                camera.capture ('/home/pi/Desktop/Birdfeeder/images/image%03d.jpg' %frame) #('./camera/recent.jpg') or %03d.jpg' % frame
-                my_TimeStampComment('Motion detected, take image ' + str(frame) + ', limit: ' + str(vectorLimit) + ' > ' + str(vectorNum) + ' < ' + str(vectorSquirrel))
-                                        #+ str(frame) + ', motion limit:' + str(vectorLimit) + '< ' + str(vectorNum) + '< ' + str(vectorSquirrel)) # + str(a))
-                lastFrame = frame
-                frame =  frame + 1
-                motionDetected = 1
-            #vectorNum > vectorSquirrel , squirrel detected
-            else:
-                r = randint(0, len(audio)-1)
-                scaryaudio = audio[r]
-                camera.annotate_text = (TimeStamp + ', |V|=' + str(vectorNum))
-                camera.capture ('/home/pi/Desktop/Birdfeeder/images/imagesquirrel%03d.jpg' %squirrelframe) #('./camera/recent.jpg') or %03d.jpg' % frame
-                my_TimeStampComment('Squirrel detected, take image ' + str(squirrelframe) + ', limit: ' + str(vectorSquirrel) + ' < ' + str(vectorNum))
-                                    #+ str(frame) + ', motion limit:' + str(vectorSquirrel) + '< ' + str(vectorNum)) # + str(a))
-                #subprocess.call(["aplay /home/pi/Documents/Python3 Projects/Birdfeeder/mtnlion.wav"], shell=True)
-                
-                # play scary sounds
-                #subprocess.call(["aplay " + scaryaudio], shell=True)
-
+                birdframe =  birdframe + 1
+                birdDetected = 1
+            else:                      #found a squirrel
                 squirrelframe = squirrelframe + 1
-                if squirrelframe > 30:
+                squirrelDetected = 1
+                if squirrelframe > 200:
                     squirrelframe = 0
-
-
-
-        #vectorNum < vectorLimit , no motion detected, below threshold
-        else:
-            if motionDetected == 1:
-                vectorNum = (a > 60).sum()
-                my_TimeStampComment('NO Motion after motion was detected' + ', limit: ' + str(vectorLimit) + ' > ' + str(vectorNum))
-                motionDetected = 0
+        #else: #no birds or squirrels code goes here
+            
 
 #******************
 
 
 #******************
+
 def my_TimeStampComment(comment):
     global TimeStamp
     now = datetime.now()
@@ -99,8 +63,8 @@ def my_TimeStampComment(comment):
     print(myTimeStamp + "-> " + comment)
 
 
-def my_ScheduledTweet():
-    global frame, firstFrameTweet, lastFrameTweet, TimeStamp, videoFN, videoFNcreated
+def my_ScheduledTimeLapseTweet():
+    global birdframe, firstFrameTweet, lastFrameTweet, TimeStamp, videoFN, videoFNcreated
     #videoFNcreated = 1
     #videoFN = '/home/pi/Desktop/Birdfeeder/Animation/Animation test.mp4'
     if videoFNcreated == 1:
@@ -116,32 +80,41 @@ def my_ScheduledTweet():
     else:
         my_TimeStampComment('no video, no tweeting...')
 
+def my_SendVideoTweet():
+    global videoReady
+    #videoFNcreated = 1
+    #videoFN = '/home/pi/Desktop/Birdfeeder/Animation/Animation test.mp4'
+    if videoReady == 1:
+        video = open(videoFN, 'rb')
+        #load mp4 video to twitter and get the media ID
+        my_TimeStampComment("Tweet stop animation video..." + videoFN)
+        message = ("#Birdfeeder video. @Raspberry_Pi automatically takes a mp4 video.\n#birds #birdwatching #RaspberryPi")
+        #response = myTweet.upload_video(media=video, media_type='video/mp4') #previous method, worked for 20sec length
+        #https://github.com/ryanmcgrath/twython/issues/438, post videos of up to 2:20 in length
+        response = myTweet.upload_video(media=video, media_type='video/mp4', media_category='tweet_video', check_progress=True)
+        myTweet.update_status(status=message, media_ids=[response['media_id']])
+        videoFNcreated = 0 #set it back to 0 after sending tweet, so doesn't send the same video next tweet
+    else:
+        my_TimeStampComment('no video, no tweeting...')
         
 def my_CreateAnimation():
-    global frame, firstFrameTweet, lastFrameTweet, TimeStamp, videoFN, videoFNcreated
+    global birdframe, firstFrameTweet, lastFrameTweet, TimeStamp, videoFN, videoFNcreated
 
-    my_TimeStampComment('create animation...' + str(frame) + ' images')
+    my_TimeStampComment('create animation...' + str(birdframe) + ' images')
     subprocess.call(["/usr/bin/ffmpeg","-r","2","-i","/home/pi/Desktop/Birdfeeder/images/image%03d.jpg","-qscale","2","/home/pi/Desktop/Birdfeeder/Animation/Animation " + TimeStamp + ".mp4"]) #worked
     videoFN =  "/home/pi/Desktop/Birdfeeder/Animation/Animation " + TimeStamp + ".mp4" #set videoFN to the name offile to tweet when its time
-    #os.rename("/home/pi/Desktop/Birdfeeder/Animation/animation " + TimeStamp + ".mp4","/home/pi/Desktop/Birdfeeder/Animation/animationtweet.mp4")
     
-    '''
-    if frame > 0:
-        firstFrameTweet = firstFrame
-        lastFrameTweet = lastFrame
-    '''
-    
-    my_TimeStampComment("check files before delete " + str(frame) + " files...")
-    for i in range(1,frame):
+    my_TimeStampComment("check files before delete " + str(birdframe) + " files...")
+    for i in range(1,birdframe):
         if os.path.exists('/home/pi/Desktop/Birdfeeder/images/image%03d.jpg' % i):
             #my_TimeStampComment("delete file " + str(i) + " of " +str(frame))
             os.remove('/home/pi/Desktop/Birdfeeder/images/image%03d.jpg' % i)
     if os.path.exists('/home/pi/Desktop/Birdfeeder/images/image000.jpg'):
             #my_TimeStampComment("delete file " + str(i) + " of " +str(frame))
             os.remove('/home/pi/Desktop/Birdfeeder/images/image000.jpg')       
-    my_TimeStampComment(str(frame) + " files deleted and image000...")
-    my_TimeStampComment("setframe = 0")
-    frame = 0 #reset counter to start over
+    my_TimeStampComment(str(birdframe) + " files deleted and image000...")
+    my_TimeStampComment("set bird frame = 0")
+    birdframe = 0 #reset counter to start over
                
     '''if os.path.exists("/home/pi/Desktop/Birdfeeder/Animation/animation.mp4"):
     now = datetime.now()
@@ -151,6 +124,18 @@ def my_CreateAnimation():
     videoFNcreated = 1 #video created, ok to tweet it
     my_TimeStampComment("timelapse video created, waiting...")
 
+def my_CreateVideo(length):
+    global videoReady
+    os.rename('/home/pi/Desktop/Birdfeeder/images/video.h264', '/home/pi/Desktop/Birdfeeder/images/video1.h264')
+    camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video2.h264', format='h264', motion_output=output)
+    camera.wait_recording(length)
+    camera.stop_recording()
+    subprocess.call(["/usr/bin/ffmpeg","-i","concat:/home/pi/Desktop/Birdfeeder/images/video1.h264|/home/pi/Desktop/Birdfeeder/images/video2.h264","-c","copy","/home/pi/Desktop/Birdfeeder/images/video3.h264"]) #worked
+    #ffmpeg -i v1.h264 -c:av copy v1.mp4
+    subprocess.call(["/usr/bin/ffmpeg","-i","/home/pi/Desktop/Birdfeeder/images/video3.h264","-c:av","copy","/home/pi/Desktop/Birdfeeder/images/video3.mp4"])
+    os.remove('/home/pi/Desktop/Birdfeeder/images/video1.h264')
+    os.remove('/home/pi/Desktop/Birdfeeder/images/video2.h264')
+    videoReady = 1
 
 
 #******************
@@ -162,32 +147,26 @@ A_secret = "bSuQYx6AsrbqST6gk8nIUbaGVrn4Zf0IzG8LwREWjuhhW"
 myTweet = Twython(C_key,C_secret,A_token,A_secret)
 
 
-frame = 0
+birdframe = 0
 squirrelframe = 0
 firstFrame = 0
 videoFNcreated = 0
 
-schedule.every().day.at("08:00").do(my_ScheduledTweet)
-schedule.every().day.at("14:00").do(my_ScheduledTweet)
-schedule.every().day.at("17:50").do(my_ScheduledTweet)
+schedule.every().day.at("09:00").do(my_ScheduledTimeLapseTweet)
+schedule.every().day.at("11:00").do(my_ScheduledVideoTweet)
+schedule.every().day.at("14:00").do(my_ScheduledTimeLapseTweet)
+schedule.every().day.at("16:00").do(my_ScheduledVideoTweet)
+schedule.every().day.at("17:50").do(my_ScheduledTimeLapseTweet)
 
 #schedule.every().day.at("20:25").do(my_ScheduledTweet)
 
-audiofiledir = "/home/pi/Documents/python3/birdfeeder/"
-audio = []
-audio.append(audiofiledir + 'doberman.wav')
-#audio.append(audiofiledir + 'dogbarking.wav') #long sound file
-audio.append(audiofiledir + 'dogcrazy.wav')
-audio.append(audiofiledir + 'doggrowl.wav')
-audio.append(audiofiledir + 'mtnlion.wav')
-audio.append(audiofiledir + 'mtnlion.wav')
-audio.append(audiofiledir + 'mtnlion.wav')
 
 #******************
 
 with picamera.PiCamera() as camera:
-    global motionDetected
-    motionDetected = 0
+    global birdDetected, squirrelDetected
+    birdDetected = 0
+    squirrelDetected = 0
 
     camera.rotation = 270
     camera.resolution = (1024, 768) #(640,480)  #(2592, 1944) (1920, 1080) (1280,720) (1024, 768)
@@ -211,20 +190,24 @@ with picamera.PiCamera() as camera:
             if 6 <= timecheck  < 18:
                 schedule.run_pending()
                 camera.start_preview()
-                sleep(1)
+                sleep(2)
                 my_TimeStampComment('started & waiting...')
                 #timestamp videos, save all or save same filename and delete
                 #camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video ' + TimeStamp + '.h264', format='h264', motion_output=output)
                 camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video.h264', format='h264', motion_output=output)
-                camera.wait_recording(60)
+                camera.wait_recording(2)
                 camera.stop_recording()
-                sleep(1)
-                os.remove('/home/pi/Desktop/Birdfeeder/images/video.h264')
-                if frame >= 20: # video set to make 2 frames / sec, 5sec
-                    my_CreateAnimation()
-                my_TimeStampComment('finished with ' + str(frame) + ' images')
-                sleep(1)
+                if birdDetected == 1:
+                        my_TimeStampComment('bird detected, make videos')
+                        my_CreateVideo(4)
+                        my_SendVideoTweet()
+                        birdDetected = 0
+                else:
+                    sleep(1)
+                    os.remove('/home/pi/Desktop/Birdfeeder/images/video.h264')
             sleep(2)
 
 
-        
+# reference code
+# camera.capture ('/home/pi/Desktop/Birdfeeder/images/imagesquirrel%03d.jpg' %squirrelframe) #('./camera/recent.jpg') or %03d.jpg' % frame
+# my_TimeStampComment('Squirrel detected, take image ' + str(squirrelframe) + ', limit: ' + str(vectorSquirrel) + ' < ' + str(vectorNum))
