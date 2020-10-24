@@ -80,19 +80,20 @@ def my_ScheduledTimeLapseTweet():
     else:
         my_TimeStampComment('no video, no tweeting...')
 
-def my_SendVideoTweet():
+def my_SendVideoTweet(videoFN):
     global videoReady
     #videoFNcreated = 1
     #videoFN = '/home/pi/Desktop/Birdfeeder/Animation/Animation test.mp4'
     if videoReady == 1:
         video = open(videoFN, 'rb')
         #load mp4 video to twitter and get the media ID
-        my_TimeStampComment("Tweet stop animation video..." + videoFN)
+        my_TimeStampComment("Tweet video..." + videoFN)
         message = ("#Birdfeeder video. @Raspberry_Pi automatically takes a mp4 video.\n#birds #birdwatching #RaspberryPi")
         #response = myTweet.upload_video(media=video, media_type='video/mp4') #previous method, worked for 20sec length
         #https://github.com/ryanmcgrath/twython/issues/438, post videos of up to 2:20 in length
         response = myTweet.upload_video(media=video, media_type='video/mp4', media_category='tweet_video', check_progress=True)
         myTweet.update_status(status=message, media_ids=[response['media_id']])
+        os.rename('/home/pi/Desktop/Birdfeeder/images/video.mp4', '/home/pi/Desktop/Birdfeeder/images/videoTweeted ' + TimeStamp + '.mp4')
         videoFNcreated = 0 #set it back to 0 after sending tweet, so doesn't send the same video next tweet
     else:
         my_TimeStampComment('no video, no tweeting...')
@@ -126,15 +127,18 @@ def my_CreateAnimation():
 
 def my_CreateVideo(length):
     global videoReady
-    os.rename('/home/pi/Desktop/Birdfeeder/images/video.h264', '/home/pi/Desktop/Birdfeeder/images/video1.h264')
+    #os.rename('/home/pi/Desktop/Birdfeeder/images/video.h264', '/home/pi/Desktop/Birdfeeder/images/video1.h264')
     camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video2.h264', format='h264', motion_output=output)
     camera.wait_recording(length)
     camera.stop_recording()
-    subprocess.call(["/usr/bin/ffmpeg","-i","concat:/home/pi/Desktop/Birdfeeder/images/video1.h264|/home/pi/Desktop/Birdfeeder/images/video2.h264","-c","copy","/home/pi/Desktop/Birdfeeder/images/video3.h264"]) #worked
+    if os.path.exists('/home/pi/Desktop/Birdfeeder/images/video.mp4'): #delete mp4 file incase one still there when re-start program, ffmeg will crash if file there
+        os.remove('/home/pi/Desktop/Birdfeeder/images/video.mp4')       
+    subprocess.call(["/usr/bin/ffmpeg","-i","concat:/home/pi/Desktop/Birdfeeder/images/video1.h264|/home/pi/Desktop/Birdfeeder/images/video2.h264","-c","copy","/home/pi/Desktop/Birdfeeder/images/video.h264"]) #worked
     #ffmpeg -i v1.h264 -c:av copy v1.mp4
-    subprocess.call(["/usr/bin/ffmpeg","-i","/home/pi/Desktop/Birdfeeder/images/video3.h264","-c:av","copy","/home/pi/Desktop/Birdfeeder/images/video3.mp4"])
+    subprocess.call(["/usr/bin/ffmpeg","-i","/home/pi/Desktop/Birdfeeder/images/video.h264","-c:av","copy","/home/pi/Desktop/Birdfeeder/images/video.mp4"])
     os.remove('/home/pi/Desktop/Birdfeeder/images/video1.h264')
     os.remove('/home/pi/Desktop/Birdfeeder/images/video2.h264')
+    os.remove('/home/pi/Desktop/Birdfeeder/images/video.h264')
     videoReady = 1
 
 
@@ -153,9 +157,9 @@ firstFrame = 0
 videoFNcreated = 0
 
 schedule.every().day.at("09:00").do(my_ScheduledTimeLapseTweet)
-schedule.every().day.at("11:00").do(my_ScheduledVideoTweet)
+schedule.every().day.at("11:00").do(my_SendVideoTweet)
 schedule.every().day.at("14:00").do(my_ScheduledTimeLapseTweet)
-schedule.every().day.at("16:00").do(my_ScheduledVideoTweet)
+schedule.every().day.at("16:00").do(my_SendVideoTweet)
 schedule.every().day.at("17:50").do(my_ScheduledTimeLapseTweet)
 
 #schedule.every().day.at("20:25").do(my_ScheduledTweet)
@@ -173,38 +177,42 @@ with picamera.PiCamera() as camera:
                                 #camera.resolution = max picture #(2592, 1944) (1280,720) (1024, 768),
                                 #max video (1920,1080), max twitter video (1820, 720)
     camera.framerate = 30 #6  #various speeds based on resolution
-    camera.iso = 600                #0 which is auto, 100 to 800
+    camera.iso = 200                #0 which is auto, 100 to 800
     camera.meter_mode = 'matrix'    #'average', 'spot', 'backlit', 'matrix'
 
     camera.brightness = 50          #0 to 50, default 50
-    camera.exposure_mode = 'sports'   #'off','auto','sunlight','night','nightpreview','backlight'
-    camera.exposure_compensation = 0 #-25 and 25
+    camera.exposure_mode = 'auto'   #'off','sports','auto','sunlight','night','nightpreview','backlight'
+    camera.exposure_compensation = 10 #-25 and 25
     camera.contrast = 0             #-100 to 100
     camera.drc_strength = 'off'     #'off' ,'low', 'medium', 'high'
     camera.annotate_background = Color('black')
     #camera.annotate_foreground = Color('black') #defaults to white if not set to a colour
+    my_TimeStampComment('started & waiting...')
+
 
     with DetectMotion(camera) as output:
         while True:
             timecheck = datetime.now().hour
-            if 6 <= timecheck  < 18:
+            if 6 <= timecheck  < 17:
                 schedule.run_pending()
                 camera.start_preview()
-                sleep(2)
-                my_TimeStampComment('started & waiting...')
+                sleep(1.5)
                 #timestamp videos, save all or save same filename and delete
                 #camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video ' + TimeStamp + '.h264', format='h264', motion_output=output)
-                camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video.h264', format='h264', motion_output=output)
+                camera.start_recording('/home/pi/Desktop/Birdfeeder/images/video1.h264', format='h264', motion_output=output)
                 camera.wait_recording(2)
                 camera.stop_recording()
                 if birdDetected == 1:
                         my_TimeStampComment('bird detected, make videos')
-                        my_CreateVideo(4)
-                        my_SendVideoTweet()
+                        my_CreateVideo(5)
+                        SendVideoTweetFN = "/home/pi/Desktop/Birdfeeder/images/video.mp4"
+                        my_SendVideoTweet(SendVideoTweetFN)
                         birdDetected = 0
+                        my_TimeStampComment('waiting XX seconds after tweet sent...')
+                        sleep(600) # wait X seconds between tweets
                 else:
-                    sleep(1)
-                    os.remove('/home/pi/Desktop/Birdfeeder/images/video.h264')
+                    sleep(0.5)
+                    os.remove('/home/pi/Desktop/Birdfeeder/images/video1.h264')
             sleep(2)
 
 
